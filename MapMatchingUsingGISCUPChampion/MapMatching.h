@@ -21,3 +21,5 @@ using namespace std;
 
 extern Map map;
 extern list<Edge*> MapMatching(list<GeoPoint*> &trajectory, double canadidatesPickRange);
+extern GeoPoint* GetProjection(GeoPoint* trajPoint, Edge* edge);
+extern GeoPoint* GetLineSegmentProjection(GeoPoint* pt, GeoPoint* lineStart, GeoPoint* lineEnd);

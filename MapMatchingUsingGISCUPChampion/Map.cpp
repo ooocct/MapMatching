@@ -20,20 +20,20 @@ void Map::open(string folderDir, int gridWidth)
 {
 	/*文件目录结构为
 	* folderDir
-	* |-WA_Nodes.txt
-	* |-WA_EdgeGeometry.txt
-	* |-WA_Edges.txt
+	* |-HK_Nodes.txt
+	* |-HK_EdgeGeometry.txt
+	* |-HK_Edges.txt
 	*/
 	this->gridWidth = gridWidth;
 	int count = 0;
 	//////////////////////////////////////////////////////////////////////////
-	//读取WA_Nodes.txt
+	//读取HK_Nodes.txt
 	//格式：nodeId lat lon
 	//////////////////////////////////////////////////////////////////////////
-	ifstream nodeIfs(folderDir + "WA_Nodes.txt");
+	ifstream nodeIfs(folderDir + "HK_Nodes.txt");
 	if (!nodeIfs)
 	{
-		cout << "open " + folderDir + "WA_Nodes.txt" + " error!\n";
+		cout << "open " + folderDir + "HK_Nodes.txt" + " error!\n";
 		system("pause");
 		exit(0);
 	}
@@ -61,14 +61,14 @@ void Map::open(string folderDir, int gridWidth)
 	nodeIfs.close();
 
 	//////////////////////////////////////////////////////////////////////////
-	//读取WA_EdgeGeometry.txt
+	//读取HK_EdgeGeometry.txt
 	//格式：edgeId^^Highway^1^起始端点纬度^起始端点经度[^中间点1纬度^中间点1经度^中间点2纬度^中间点2经度.....]^结束端点纬度^结束端点经度    
 	//////////////////////////////////////////////////////////////////////////
 	count = 0;
-	std::ifstream geometryIfs(folderDir + "WA_EdgeGeometry.txt");
+	std::ifstream geometryIfs(folderDir + "HK_EdgeGeometry.txt");
 	if (!geometryIfs)
 	{
-		cout << "open " + folderDir + "WA_EdgeGeometry.txt" + " error!\n";
+		cout << "open " + folderDir + "HK_EdgeGeometry.txt" + " error!\n";
 		system("pause");
 		exit(0);
 	}
@@ -168,7 +168,7 @@ void Map::open(string folderDir, int gridWidth)
 	geometryIfs.close();
 
 	//////////////////////////////////////////////////////////////////////////
-	//读取WA_Edges.txt
+	//读取HK_Edges.txt
 	//格式：edgeId startNodeId endNodeId 1
 	//////////////////////////////////////////////////////////////////////////
 	//初始化邻接表
@@ -181,16 +181,17 @@ void Map::open(string folderDir, int gridWidth)
 		head->next = NULL;
 		adjList.push_back(head);
 	}
-	std::ifstream edgeIfs(folderDir + "WA_Edges.txt");
+	std::ifstream edgeIfs(folderDir + "HK_Edges.txt");
 	if (!edgeIfs)
 	{
-		cout << "open " + folderDir + "WA_Edges.txt" + " error!\n";
+		cout << "open " + folderDir + "HK_Edges.txt" + " error!\n";
 		system("pause");
 		exit(0);
 	}
 	while (edgeIfs)
 	{
-		int edgeId, startNodeId, endNodeId, dummy;
+		int edgeId, startNodeId, endNodeId;
+		double dummy;
 		edgeIfs >> edgeId >> startNodeId >> endNodeId >> dummy;
 		if (edgeIfs.fail())
 			break;

@@ -7,14 +7,17 @@ Traj* readOneTrajectory(string &filePath)
 	FILE *fpIn;
 	fopen_s(&fpIn, filePath.c_str(), "r");
 	double lat, lon;
+	double db1, db2, db3, db4, db5, db6, db7, db8, db9, db10;
+	double timeRaw;
 	int time;
 	Traj* traj = new Traj();
-	while (!feof(fpIn))
-	{
-		int flag = fscanf_s(fpIn, "%d,%lf,%lf", &time, &lat, &lon);
-		//·ÀÖ¹Ä©ÐÐ¶ÁÈëÁ½±é
-		if (flag == -1)
+	while (true) {
+		int flag = fscanf_s(fpIn, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", &timeRaw, &lat, &lon, &db1, &db2, &db3, &db4, &db5, &db6, &db7, &db8, &db9, &db10);
+		if (flag != 13) {
+			// End of file reached or a reading error occurred
 			break;
+		}
+		time = (int)timeRaw;
 		GeoPoint* pt = new GeoPoint(lat, lon, time);
 		traj->push_back(pt);
 	}
@@ -43,7 +46,7 @@ void scanTrajFolder(string folderDir, list<Traj*> &trajList, vector<string> &out
 		do {
 			string inputFileName = fileInfo.name;
 			trajList.push_back(readOneTrajectory(folderDir + "test_input\\" + inputFileName));
-			string outputFileName = inputFileName.substr(6, inputFileName.size() - 10);
+			string outputFileName = inputFileName.substr(0, inputFileName.size() - 4);
 			outputFileName = "output_" + outputFileName + ".txt";
 			outputFileNames.push_back(outputFileName);
 		} while (_findnext(lf, &fileInfo) == 0);

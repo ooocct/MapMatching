@@ -109,10 +109,21 @@ public:
 	double maxLon = 104.0;*/
 	
 	//singapore full
-	double minLat = 0.99999;
-	double maxLat = 1.6265;
-	double minLon = 103.548;
-	double maxLon = 104.1155;
+	//double minLat = 0.99999;
+	//double maxLat = 1.6265;
+	//double minLon = 103.548;
+	//double maxLon = 104.1155;
+
+	//HongKong test
+	//double minLat = 22.28;
+	//double maxLat = 22.32;
+	//double minLon = 114.135;
+	//double maxLon = 114.20;
+	//HongKong full
+	double minLat = 22.14;
+	double maxLat = 22.58;
+	double minLon = 113.81;
+	double maxLon = 114.43;
 
 	//washington full
 	//double minLat = 45.0;

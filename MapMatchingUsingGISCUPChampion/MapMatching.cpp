@@ -1,6 +1,7 @@
 #include<set>
 #include "MapMatching.h"
 #include "ReadInTrajs.h"
+#include <iomanip>
 
 //GISCUP2012第一名的算法所需参数
 #define UA 10
@@ -11,7 +12,7 @@
 //运行所需的全局变量
 vector<string> outputFileNames;
 list<Traj*> trajList;
-Map map = Map("D:\\Document\\Subjects\\Computer\\Develop\\Data\\SingaporeData\\", 500);
+Map map = Map("D:\\PhDStudy\\pythonproject\\osm\\", 500);
 ofstream logOutput;
 
 //地图匹配所用数据结构
@@ -126,8 +127,9 @@ void GetCanadidateEdges(list<GeoPoint*> &trajectory, vector<vector<CanadidateEdg
 }
 
 //动态规划求解最小权值
-list<Edge*> ShortestWeight(vector<vector<CanadidateEdge>> &scoreMatrix){
+list<GeoPoint*> ShortestWeight(list<GeoPoint*>& trajectory, vector<vector<CanadidateEdge>> &scoreMatrix){
 	list<Edge*> mapMatchingResult;//全局匹配路径
+	list<GeoPoint*> mapMatchingResultGeoPoint;//全局匹配位置
 	vector<vector<CanadidateEdge>>::iterator loopIter = scoreMatrix.begin();
 	vector<vector<CanadidateEdge>>::iterator formerIter = scoreMatrix.begin();
 	int columnIndex = 0;
@@ -176,14 +178,70 @@ list<Edge*> ShortestWeight(vector<vector<CanadidateEdge>> &scoreMatrix){
 			matchedEdgeIndex = i;
 		}
 	}
+	auto it = trajectory.rbegin();
 	for (int i = scoreMatrix.size() - 1; i >= 0; i--){
-		mapMatchingResult.push_front(scoreMatrix.at(i).at(matchedEdgeIndex).edge);
+		Edge* matchedEdge = scoreMatrix.at(i).at(matchedEdgeIndex).edge;
+		mapMatchingResult.push_front(matchedEdge);
+		// 获取当前轨迹点
+		GeoPoint* trajPoint = *it;
+		std::advance(it, 1);  // 移动到下一个轨迹点
+		GeoPoint* ProjectPoint = GetProjection(trajPoint, matchedEdge);
+		mapMatchingResultGeoPoint.push_front(ProjectPoint);
 		matchedEdgeIndex = scoreMatrix.at(i).at(matchedEdgeIndex).preColumnIndex;
 	}
-	return mapMatchingResult;
+	return mapMatchingResultGeoPoint;
 }
 
-list<Edge*> MapMatching(list<GeoPoint*> &trajectory){
+// Helper function to calculate the projection of a point onto a line segment
+GeoPoint* GetLineSegmentProjection(GeoPoint* pt, GeoPoint* lineStart, GeoPoint* lineEnd) {
+	double A = (lineEnd->lat - lineStart->lat);
+	double B = -(lineEnd->lon - lineStart->lon);
+	double C = lineStart->lat * (lineEnd->lon - lineStart->lon) - lineStart->lon * (lineEnd->lat - lineStart->lat);
+
+	double factor = -(A * pt->lon + B * pt->lat + C) / (A * A + B * B);
+	double proj_lon = pt->lon + factor * A;
+	double proj_lat = pt->lat + factor * B;
+
+	return new GeoPoint(proj_lat, proj_lon);
+}
+
+// Function to get the projection point of trajPoint on edge
+GeoPoint* GetProjection(GeoPoint* trajPoint, Edge* edge) {
+	double minDist = INF;
+	GeoPoint* closestPoint = nullptr;
+
+	// Iterate through each line segment in the edge
+	for (auto iter = edge->figure->begin(); iter != edge->figure->end(); ++iter) {
+		auto nextIter = std::next(iter);
+
+		// Check if nextIter is the end of the figure list
+		if (nextIter == edge->figure->end()) {
+			break;
+		}
+
+		// Calculate projection onto current line segment
+		GeoPoint* projPoint = GetLineSegmentProjection(trajPoint, *iter, *nextIter);
+		double dist = GeoPoint::distM(trajPoint->lat, trajPoint->lon, projPoint->lat, projPoint->lon);
+
+		// Update closest point if necessary
+		if (dist < minDist) {
+			minDist = dist;
+			if (closestPoint) {
+				delete closestPoint;
+			}
+			closestPoint = projPoint;
+		}
+		else {
+			delete projPoint;
+		}
+	}
+
+	return closestPoint ? closestPoint : new GeoPoint(trajPoint->lat, trajPoint->lon);
+}
+
+
+
+list<GeoPoint*> MapMatching(list<GeoPoint*> &trajectory){
 	vector<vector<CanadidateEdge>> scoreMatrix = vector<vector<CanadidateEdge>>();//候选路段矩阵；行代表一个轨迹点；列代表一个候选路段
 	//获取候选路段
 	GetCanadidateEdges(trajectory, scoreMatrix);
@@ -207,26 +265,40 @@ list<Edge*> MapMatching(list<GeoPoint*> &trajectory){
 	//system("pause");
 	//调试结束
 	//返回全局最小权值解，即全局匹配路径
-	return ShortestWeight(scoreMatrix);
+	return ShortestWeight(trajectory, scoreMatrix);
 }
 
 void main(){
-	scanTrajFolder("D:\\Document\\Subjects\\Computer\\Develop\\Data\\SingaporeData\\", trajList, outputFileNames);
+	scanTrajFolder("D:\\PhDStudy\\pythonproject\\osm\\", trajList, outputFileNames);
 	int trajIndex = 0;
 	cout << "开始地图匹配！" << endl;
 	for (list<Traj*>::iterator trajIter = trajList.begin(); trajIter != trajList.end(); trajIter++){
-		list<Edge*> resultList = MapMatching(*(*trajIter));
-		ofstream MatchedEdgeOutput("D:\\Document\\Subjects\\Computer\\Develop\\Data\\SingaporeData\\test_output\\" + outputFileNames[trajIndex]);
+		list<GeoPoint*> resultList = MapMatching(*(*trajIter));
+		ofstream MatchedEdgeOutput("D:\\PhDStudy\\pythonproject\\osm\\test_output\\" + outputFileNames[trajIndex]);
 		Traj::iterator trajPointIter = (*trajIter)->begin();
-		for (list<Edge*>::iterator edgeIter = resultList.begin(); edgeIter != resultList.end(); edgeIter++, trajPointIter++){
-			if (*edgeIter != NULL){
-				int currentIndex = (*edgeIter)->id;
-				MatchedEdgeOutput << (*trajPointIter)->time << "," << currentIndex << ",1.0" << endl;
-			}
-			else{
-				MatchedEdgeOutput << (*trajPointIter)->time << "," << -1 << ",1.0" << endl;
+		for (list<GeoPoint*>::iterator GeoPointIter = resultList.begin(); GeoPointIter != resultList.end(); GeoPointIter++, trajPointIter++) {
+			if (*GeoPointIter != NULL) {
+				double currentlat = (*GeoPointIter)->lat;
+				double currentlon = (*GeoPointIter)->lon;
+				MatchedEdgeOutput << std::fixed << std::setprecision(7) // 设置输出小数位数为7位
+					<< (*trajPointIter)->time << ","
+					<< currentlat << ","
+					<< currentlon << std::endl;
+				//MatchedEdgeOutput << (*trajPointIter)->time << "," << currentlat << "," << currentlon << endl;
 			}
 		}
+		//list<Edge*> resultList = MapMatching(*(*trajIter));
+		//ofstream MatchedEdgeOutput("D:\\PhDStudy\\pythonproject\\osm\\test_output\\" + outputFileNames[trajIndex]);
+		//Traj::iterator trajPointIter = (*trajIter)->begin();
+		//for (list<Edge*>::iterator edgeIter = resultList.begin(); edgeIter != resultList.end(); edgeIter++, trajPointIter++){
+		//	if (*edgeIter != NULL){
+		//		int currentIndex = (*edgeIter)->id;
+		//		MatchedEdgeOutput << (*trajPointIter)->time << "," << currentIndex << ",1.0" << endl;
+		//	}
+		//	else{
+		//		MatchedEdgeOutput << (*trajPointIter)->time << "," << -1 << ",1.0" << endl;
+		//	}
+		//}
 		MatchedEdgeOutput.close();
 		cout << "第" << trajIndex << "条轨迹匹配完毕！" << endl;
 		trajIndex++;
